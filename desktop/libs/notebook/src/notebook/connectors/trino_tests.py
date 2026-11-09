@@ -162,6 +162,22 @@ class TestTrinoApi(TestCase):
     assert result['status'] == 'available'
     assert result['next_uri'] == 'http://url'
 
+  def test_check_status_running(self):
+    mock_trino_request = MagicMock()
+    self.trino_api.trino_request = mock_trino_request
+
+    # Configure the MagicMock object to return a RUNNING state
+    mock_trino_request.get.return_value = MagicMock()
+    mock_trino_request.process.return_value = MagicMock(stats={'state': 'RUNNING'}, next_uri='http://url')
+
+    # Call the check_status method
+    result = self.trino_api.check_status(notebook={}, snippet={'result': {'handle': {'next_uri': 'http://url'}}})
+
+    # A RUNNING query must not be reported as 'available', otherwise the editor treats it as finished,
+    # fetches the results while the query is still executing and shows 0 results.
+    assert result['status'] == 'running'
+    assert result['next_uri'] == 'http://url'
+
   def test_execute(self):
     with patch('notebook.connectors.trino.TrinoQuery') as TrinoQuery:
       # Mock TrinoQuery object and its methods

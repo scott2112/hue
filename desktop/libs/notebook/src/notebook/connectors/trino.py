@@ -254,7 +254,7 @@ class TrinoApi(Api):
       if _status.stats['state'] == 'QUEUED':
         status = 'waiting'
       elif _status.stats['state'] == 'RUNNING':
-        status = 'available'  # need to verify
+        status = 'running'
       else:
         status = 'available'
 
