@@ -802,7 +802,7 @@ class SpnegoMiddleware(Django4MiddlewareAdapterMixin):
     return username
 
 
-class HueRemoteUserMiddleware(Django4MiddlewareAdapterMixin, RemoteUserMiddleware):
+class HueRemoteUserMiddleware(RemoteUserMiddleware):
   """
   Middleware to delegate authentication to a proxy server. The proxy server
   will set an HTTP header (defaults to Remote-User) with the name of the

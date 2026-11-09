@@ -23,6 +23,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core import exceptions
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase
@@ -32,7 +33,7 @@ import desktop.conf
 from desktop.conf import AUDIT_EVENT_LOG_DIR, CUSTOM_CACHE_CONTROL
 from desktop.lib.django_test_util import make_logged_in_client
 from desktop.lib.test_utils import add_permission
-from desktop.middleware import CacheControlMiddleware, MultipleProxyMiddleware
+from desktop.middleware import CacheControlMiddleware, HueRemoteUserMiddleware, MultipleProxyMiddleware
 
 
 @pytest.mark.django_db
@@ -236,6 +237,41 @@ def test_cache_control_middleware():
     response = dummy_get_response(request)
   finally:
     reset()
+
+
+def test_remote_user_middleware():
+  c = Client()
+  request = c.get("/").wsgi_request
+  request.user = AnonymousUser()
+
+  def dummy_get_response(request):
+    return HttpResponse()
+
+  # With RemoteUserDjangoBackend configured, the middleware must be created with get_response and use the configured header
+  done = []
+  try:
+    done.append(desktop.conf.AUTH.BACKEND.set_for_testing(['desktop.auth.backend.RemoteUserDjangoBackend']))
+    done.append(desktop.conf.AUTH.REMOTE_USER_HEADER.set_for_testing('HTTP_CF_ACCESS_AUTHENTICATED_USER_EMAIL'))
+
+    middleware = HueRemoteUserMiddleware(dummy_get_response)
+    assert middleware.header == 'HTTP_CF_ACCESS_AUTHENTICATED_USER_EMAIL'
+
+    response = middleware(request)
+    assert response.status_code == 200
+  finally:
+    for finish in done:
+      finish()
+
+  # Otherwise the middleware is unloaded
+  done = []
+  try:
+    done.append(desktop.conf.AUTH.BACKEND.set_for_testing(['desktop.auth.backend.AllowFirstUserDjangoBackend']))
+
+    with pytest.raises(exceptions.MiddlewareNotUsed):
+      HueRemoteUserMiddleware(dummy_get_response)
+  finally:
+    for finish in done:
+      finish()
 
 
 def get_response(request):
