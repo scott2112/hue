@@ -247,7 +247,6 @@ def test_remote_user_middleware():
   def dummy_get_response(request):
     return HttpResponse()
 
-  # With RemoteUserDjangoBackend configured, the middleware must be created with get_response and use the configured header
   done = []
   try:
     done.append(desktop.conf.AUTH.BACKEND.set_for_testing(['desktop.auth.backend.RemoteUserDjangoBackend']))
@@ -262,7 +261,6 @@ def test_remote_user_middleware():
     for finish in done:
       finish()
 
-  # Otherwise the middleware is unloaded
   done = []
   try:
     done.append(desktop.conf.AUTH.BACKEND.set_for_testing(['desktop.auth.backend.AllowFirstUserDjangoBackend']))
